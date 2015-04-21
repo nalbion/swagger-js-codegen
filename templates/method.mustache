@@ -5,21 +5,24 @@
 {{#parameters}}
 {{^isSingleton}} * @param {{=<% %>=}}{<%&type%>}<%={{ }}=%> {{&camelCaseName}} - {{&description}}{{/isSingleton}}
 {{/parameters}}
- * 
  */
- {{&className}}.prototype.{{&methodName}} = function(parameters){
-    if(parameters === undefined) {
-        parameters = {};
-    }
+{{#isClosure}}
+this.{{&methodName}} = function(parameters){
+{{/isClosure}}
+{{^isClosure}}
+{{&className}}.prototype.{{&methodName}} = function(parameters){
+{{/isClosure}}
+    parameters = parameters || {};
     var deferred = {{#isNode}}Q{{/isNode}}{{^isNode}}$q{{/isNode}}.defer();
-    
+
+    {{^isClosure}}
     var domain = this.domain;
-    var path = '{{&path}}';
-    
-    var body;
-    var queryParameters = {};
-    var headers = {};
-    var form = {};
+    {{/isClosure}}
+    var path = '{{&path}}'{{#hasParameters}},
+        body,
+        queryParameters = {},
+        headers = {},
+        form = {}{{/hasParameters}};
 
     {{#isSecure}}
         if (this.token.isQuery) {
@@ -32,7 +35,13 @@
     {{/isSecure}}
 
     {{#parameters}}
-       
+        {{#required}}
+            if(parameters['{{&camelCaseName}}'] === undefined){
+                deferred.reject(new Error('Missing required {{&paramType}} parameter: {{&camelCaseName}}'));
+                return deferred.promise;
+            }
+        {{/required}}
+
         {{#isQueryParameter}}
             {{#isSingleton}}
                 queryParameters['{{&name}}'] = '{{&singleton}}';
@@ -74,7 +83,7 @@
             }
         {{/isBodyParameter}}
 
-         {{#isFormParameter}}
+        {{#isFormParameter}}
             {{#isSingleton}}
                 form['{{&name}}'] = '{{&singleton}}';
             {{/isSingleton}}
@@ -84,25 +93,19 @@
                 }
             {{/isSingleton}}
         {{/isFormParameter}}
-
-        {{#required}}
-        if(parameters['{{&camelCaseName}}'] === undefined){
-            deferred.reject(new Error('Missing required {{&paramType}} parameter: {{&camelCaseName}}'));
-            return deferred.promise;
-        }
-        {{/required}}
- 
     {{/parameters}}
-    
-    if(parameters.$queryParameters) {
-        Object.keys(parameters.$queryParameters)
-        .forEach(function(parameterName){
-            var parameter = parameters.$queryParameters[parameterName];
-            queryParameters[parameterName] = parameter;
-        });
-    }
+
+    {{#hasParameters}}
+        if(parameters.$queryParameters) {
+            Object.keys(parameters.$queryParameters)
+                .forEach(function(parameterName){
+                    var parameter = parameters.$queryParameters[parameterName];
+                    queryParameters[parameterName] = parameter;
+                });
+            }
+    {{/hasParameters}}
 
     {{> request}}
     
     return deferred.promise; 
- };
+};
