@@ -18,7 +18,7 @@ export module {{moduleName}} {
 *    provide using <code>.constant('domain', '//example.com')</code> or <code>.factory('domain', function(){return '//example.com'})</code>
 */
 export class {{&className}} {
-    static $inject = ['$http', '$q', 'domain'];
+    static $inject = ['$http', '$q', '{{domainName}}'];
 
     constructor(private $http: ng.IHttpService, private $q: ng.IQService, private domain: string) {}
 
