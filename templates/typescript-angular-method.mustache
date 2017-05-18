@@ -12,29 +12,17 @@
 {{&methodName}}(parameters: {
 {{#parameters}}{{^isSingleton}}{{&camelCaseName}}{{&cardinality}}: {{> type}},
 {{/isSingleton}}{{/parameters}}
-      $queryParameters?: {},
-    },
-    opts: {
-      $timeout?: number;
-      $refresh?: boolean;
-      $cache?: {
-        get:(key: string) => string|Object
-        put:(key: string, value: string|Object, options?: {}) => void;
-      };
-      $cacheItemOpts?: {};
-    } = {}): ng.IPromise<{{&tsType}}|any> {
-    let domain = this.domain;
+      //$queryParameters?: {}
+    } & RequestOptions): ng.IPromise<{{&tsType}}|any>
+{
     let path = '{{&basePath}}{{&path}}';
-    {{#hasBody}}
-    let body;
-    {{/hasBody}}
+    let body, form{{#hasForm}} = {}{{/hasForm}};
     let queryParameters = {};
     let headers = {};
-    {{#hasForm}}
-    let form = {};
-    {{/hasForm}}
-    let deferred = this.$q.defer();
 
+{{#isSecure}}
+    headers = this.setAuthHeaders(headers);
+{{/isSecure}}
 {{#headers}}
     headers['{{&name}}'] = [{{&value}}];
 {{/headers}}
@@ -53,15 +41,15 @@
                 });
             {{/isPatternType}}
             {{^isPatternType}}
-                if(parameters['{{&camelCaseName}}'] !== undefined){
-                    queryParameters['{{&name}}'] = parameters['{{&camelCaseName}}'];
-                }
+                //if(parameters.{{&camelCaseName}} !== undefined){
+                    queryParameters['{{&name}}'] = parameters.{{&camelCaseName}}{{#default}}|| {{&default}}{{/default}};
+                //}
             {{/isPatternType}}
         {{/isSingleton}}
     {{/isQueryParameter}}
 
     {{#isPathParameter}}
-        path = path.replace('{{=<% %>=}}{<%&name%>}<%={{ }}=%>', parameters['{{&camelCaseName}}']);
+        path = path.replace('{{=<% %>=}}{<%&name%>}<%={{ }}=%>', parameters.{{&camelCaseName}});
     {{/isPathParameter}}
 
     {{#isHeaderParameter}}
@@ -76,9 +64,14 @@
     {{/isHeaderParameter}}
 
     {{#isBodyParameter}}
+        {{#isOptional}}
         if(parameters['{{&camelCaseName}}'] !== undefined){
-            body = parameters['{{&camelCaseName}}'];
+            body = parameters.{{&camelCaseName}};
         }
+        {{/isOptional}}
+        {{^isOptional}}
+            body = parameters.{{&camelCaseName}};
+        {{/isOptional}}
     {{/isBodyParameter}}
 
     {{#isFormParameter}}
@@ -93,59 +86,7 @@
     {{/isFormParameter}}
 {{/parameters}}
 
-if(parameters.$queryParameters) {
-    Object.keys(parameters.$queryParameters).forEach(function(parameterName){
-        var parameter = parameters.$queryParameters[parameterName];
-        queryParameters[parameterName] = parameter;
-    });
-}
+//queryParameters = {{&className}}.mergeQueryParams(parameters, queryParameters);
 
-var url = domain + path;
-{{#isGET}}
-var cached = opts.$cache && opts.$cache.get(url);
-if(cached !== undefined && opts.$refresh !== true) {
-    deferred.resolve(cached);
-    return deferred.promise;
-}
-{{/isGET}}
-var options = {
-    timeout: opts.$timeout,
-    method: '{{method}}',
-    url: url,
-    params: queryParameters,
-{{#hasBody}}
-    data: body,
-{{/hasBody}}
-{{#hasForm}}
-    data: form,
-{{/hasForm}}
-    headers: headers
-};
-{{! I don't think this is actually needed #hasBody} }
-if(typeof(body) === 'object' && !(body.constructor.name === 'Buffer')) {
-    options.headers['Content-Type'] = 'application/json';
-{ {/hasBody}}
-{{#hasForm}}
-options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-options.transformRequest = {{&className}}.transformRequest;
-{{/hasForm}}
-
-this.$http(options).then(function(response: ng.IHttpPromiseCallbackArg<{{&tsType}}|any>){
-    if(response.status >= 400) {
-        deferred.reject(response);
-    } else {
-        {{#hasVoidReturn}}
-        deferred.resolve();
-        {{/hasVoidReturn}}
-        {{^hasVoidReturn}}
-        deferred.resolve(response.data);
-        if(opts.$cache !== undefined) {
-            opts.$cache.put(url, response.data, opts.$cacheItemOpts ? opts.$cacheItemOpts : {});
-        }
-        {{/hasVoidReturn}}
-    }
-}, deferred.reject);
-
-return deferred.promise;
-
+return this.request('{{method}}', this.domain + path, parameters, body, headers, queryParameters, form);
 }

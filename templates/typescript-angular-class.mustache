@@ -3,11 +3,23 @@ import * as angular from 'angular';
 
 export module {{moduleName}} {
 
+
+
 {{#definitions}}
     {{#description}}/** {{description}} */{{/description}}
     export type {{&name}} = {{#tsType}}{{> type}}{{/tsType}};
 
 {{/definitions}}
+
+    export type RequestOptions = {
+        $timeout?: number;
+        $refresh?: boolean;
+        $cache?: {
+            get:(key: string) => string|Object
+            put:(key: string, value: string|Object, options?: {}) => void;
+        };
+        $cacheItemOpts?: {};
+    };
 
 /**
 * {{&description}}
@@ -27,10 +39,153 @@ export class {{&className}} {
 
 {{/methods}}
 
+    /**
+     * HTTP Request
+     * @param {string} method - http method
+     * @param {string} url - url to do request
+     * @param {object} opts
+     * @param {object} body - body parameters / object
+     * @param {object} headers - header parameters
+     * @param {object} queryParameters - querystring parameters
+     * @param {object} form - form data object
+     */
+    private request(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string,
+                    opts?: RequestOptions, body?: any, headers?: any,
+                    queryParameters?: any, form?: any): ng.IPromise<any> {
+
+        let deferred = this.$q.defer();
+        let cached = opts.$cache && opts.$cache.get(url);
+        if (cached !== undefined && opts.$refresh !== true) {
+            deferred.resolve(cached);
+            return deferred.promise;
+        }
+
+        let options: ng.IRequestConfig = {
+            timeout: opts.$timeout,
+            method: method,
+            url: url,
+            params: queryParameters,
+            data: body,
+            headers: headers
+        };
+        if(Object.keys(form).length > 0) {
+            options.data = form;
+            options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            options.transformRequest = {{&className}}.transformRequest;
+        }
+        this.$http(options)
+            .then((response: ng.IHttpPromiseCallbackArg<any>) => {
+                if (response.status >= 400) {
+                    deferred.reject(response);
+                } else {
+                    deferred.resolve(response);
+                    if(opts.$cache !== undefined) {
+                        opts.$cache.put(url, response, opts.$cacheItemOpts ? opts.$cacheItemOpts : {});
+                    }
+                }
+            })
+            .catch(deferred.reject);
+
+        return deferred.promise;
+    }
+
+    /*private $on($scope, path, handler){
+        var url = this.domain + path;
+        $scope.$on(url, function(){
+            handler();
+        });
+        return this;
+    }
+
+    private $broadcast = function(path){
+        var url = this.domain + path;
+        //cache.remove(url);
+        $rootScope.$broadcast(url);
+        return this;
+    };*/
+
+{{#isSecure}}
+    {{#isSecureToken}}
+    private token: string;
+
+    /**
+     * Set Token
+     * @param {string} value - token's value
+     * @param {string} headerOrQueryName - the header or query name to send the token at
+     * @param {boolean} isQuery - true if send the token as query param, otherwise, send as header param
+     */
+    setToken(token: string) {
+        this.token = token;
+    }
+    {{/isSecureToken}}
+    {{#isSecureApiKey}}
+
+    private apiKey: {value: string, headerOrQueryName: string, isQuery: boolean};
+    /**
+     * Set Api Key
+     * @param {string} value - apiKey's value
+     * @param {string} headerOrQueryName - the header or query name to send the apiKey at
+     * @param {boolean} isQuery - true if send the apiKey as query param, otherwise, send as header param
+     */
+    setApiKey(value: string, headerOrQueryName: string, isQuery?: boolean) {
+        this.apiKey.value = value;
+        this.apiKey.headerOrQueryName = headerOrQueryName;
+        this.apiKey.isQuery = isQuery;
+    };
+    {{/isSecureApiKey}}
+    {{#isSecureBasic}}
+
+    private basic: {username: string, password: string};
+    /**
+     * Set Basic Auth
+     * @param {string} username
+     * @param {string} password
+     */
+    setBasicAuth(username: string, password: string) {
+        this.basic.username = value;
+        this.basic.password = password;
+    }
+    {{/isSecureBasic}}
+
+    /**
+     * Set Auth headers
+     * @param {object} headerParams - headers object
+     */
+    setAuthHeaders(headerParams: any) {
+        const headers = headerParams ? headerParams : {};
+    {{#isSecureToken}}
+        if (this.token) {
+            headers['Authorization'] = 'Bearer ' + this.token;
+        }
+    {{/isSecureToken}}
+    {{#isSecureApiKey}}
+        if (!this.apiKey.isQuery && this.apiKey.headerOrQueryName) {
+            headers[this.apiKey.headerOrQueryName] = this.apiKey.value;
+        }
+    {{/isSecureApiKey}}
+    {{#isSecureBasic}}
+        if (this.basic.username && this.basic.password) {
+            headers['Authorization'] = 'Basic ' + btoa(this.basic.username + ':' + this.basic.password);
+        }
+    {{/isSecureBasic}}
+        return headers;
+    }
+{{/isSecure}}
+
+    /*private static mergeQueryParams(opts, queryParameters) {
+        if (opts.$queryParameters) {
+            Object.keys(opts.$queryParameters).forEach(function(parameterName) {
+                {{#isES6}}let{{/isES6}}{{^isES6}}var{{/isES6}} parameter = opts.$queryParameters[parameterName];
+                queryParameters[parameterName] = parameter;
+            });
+        }
+        return queryParameters;
+    }*/
+
     private static transformRequest(obj: any): string {
-        var str = [];
-        for(var p in obj) {
-            var val = obj[p];
+        const str = [];
+        for(let p in obj) {
+            let val = obj[p];
             if(angular.isArray(val)) {
                 val.forEach(function(val){
                     str.push(encodeURIComponent(p) + '=' + encodeURIComponent(val));
