@@ -34,9 +34,8 @@ $domain?: string
     {{/parameters}}
     
     if(parameters.$queryParameters) {
-        Object.keys(parameters.$queryParameters).forEach(function(parameterName){
-            var parameter = parameters.$queryParameters[parameterName];
-            queryParameters[parameterName] = parameter;
+        Object.keys(parameters.$queryParameters).forEach(function(parameterName) {
+            queryParameters[parameterName] = parameters.$queryParameters[parameterName];
         });
     }
 
@@ -49,7 +48,7 @@ $domain?: string
 
     let keys = Object.keys(queryParameters);
     return domain + path + (keys.length > 0 ? '?' + (keys.map(key => key + '=' + encodeURIComponent(queryParameters[key])).join('&')): '');
-};
+}
 
 /**
 * {{&summary}}
@@ -69,9 +68,7 @@ $domain?: string
     $domain?: string
 }): Promise<request.Response> {
     const domain = parameters.$domain ? parameters.$domain : this.domain;
-    const errorHandlers = this.errorHandlers;
-    const request = this.request;
-    const path = '{{&path}}';
+    let path = '{{&path}}';
     {{#hasBody}}
     let body: any;
     {{/hasBody}}
@@ -100,7 +97,7 @@ $domain?: string
                 });
             {{/isPatternType}}
             {{^isPatternType}}
-                if(parameters['{{&camelCaseName}}'] !== undefined){
+                if(parameters['{{&camelCaseName}}'] !== undefined) {
                     queryParameters['{{&name}}'] = parameters['{{&camelCaseName}}'];
                 }
             {{/isPatternType}}
@@ -116,14 +113,14 @@ $domain?: string
             headers['{{&name}}'] = '{{&singleton}}';
         {{/isSingleton}}
         {{^isSingleton}}
-            if(parameters['{{&camelCaseName}}'] !== undefined){
+            if(parameters['{{&camelCaseName}}'] !== undefined) {
                 headers['{{&name}}'] = parameters['{{&camelCaseName}}'];
             }
         {{/isSingleton}}
     {{/isHeaderParameter}}
 
     {{#isBodyParameter}}
-        if(parameters['{{&camelCaseName}}'] !== undefined){
+        if(parameters['{{&camelCaseName}}'] !== undefined) {
             body = parameters['{{&camelCaseName}}'];
         }
     {{/isBodyParameter}}
@@ -133,19 +130,26 @@ $domain?: string
             form['{{&name}}'] = '{{&singleton}}';
         {{/isSingleton}}
         {{^isSingleton}}
-            if(parameters['{{&camelCaseName}}'] !== undefined){
+            if(parameters['{{&camelCaseName}}'] !== undefined) {
                 form['{{&name}}'] = parameters['{{&camelCaseName}}'];
             }
         {{/isSingleton}}
     {{/isFormParameter}}
+
+    {{#required}}
+        if(parameters['{{&camelCaseName}}'] === undefined) {
+            reject(new Error('Missing required {{&paramType}} parameter: {{&camelCaseName}}'));
+            return;
+        }
+    {{/required}}
+
 {{/parameters}}
 
-    if(parameters.$queryParameters) {
-        Object.keys(parameters.$queryParameters).forEach(function(parameterName){
-            var parameter = parameters.$queryParameters[parameterName];
-            queryParameters[parameterName] = parameter;
-        });
-    }
+if(parameters.$queryParameters) {
+    Object.keys(parameters.$queryParameters).forEach(function(parameterName){
+        queryParameters[parameterName] = parameters.$queryParameters[parameterName];
+    });
+}
 
     {{^isBodyParameter}}
         {{#isPOST}}
@@ -154,7 +158,6 @@ $domain?: string
         {{/isPOST}}
     {{/isBodyParameter}}
 
-    request('{{method}}', domain + path, body, headers, queryParameters, form, reject, resolve, errorHandlers);
-
+    this.request('{{method}}', domain + path, body, headers, queryParameters, form, reject, resolve);
     });
 }
