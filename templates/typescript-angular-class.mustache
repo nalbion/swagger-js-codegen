@@ -68,7 +68,7 @@ export class {{&className}} {
             data: body,
             headers: headers
         };
-        if(Object.keys(form).length > 0) {
+        if(form && Object.keys(form).length > 0) {
             options.data = form;
             options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
             options.transformRequest = {{&className}}.transformRequest;
