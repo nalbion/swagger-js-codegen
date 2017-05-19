@@ -159,12 +159,12 @@ export class {{&className}} {
         }
     {{/isSecureToken}}
     {{#isSecureApiKey}}
-        if (!this.apiKey.isQuery && this.apiKey.headerOrQueryName) {
+        if (this.apiKey && !this.apiKey.isQuery && this.apiKey.headerOrQueryName) {
             headers[this.apiKey.headerOrQueryName] = this.apiKey.value;
         }
     {{/isSecureApiKey}}
     {{#isSecureBasic}}
-        if (this.basic.username && this.basic.password) {
+        if (this.basic && this.basic.username && this.basic.password) {
             headers['Authorization'] = 'Basic ' + btoa(this.basic.username + ':' + this.basic.password);
         }
     {{/isSecureBasic}}
