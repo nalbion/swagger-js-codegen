@@ -78,7 +78,7 @@ export class {{&className}} {
                 if (response.status >= 400) {
                     deferred.reject(response);
                 } else {
-                    deferred.resolve(response);
+                    deferred.resolve(response.data);
                     if(opts.$cache !== undefined) {
                         opts.$cache.put(url, response, opts.$cacheItemOpts ? opts.$cacheItemOpts : {});
                     }
