@@ -88,5 +88,5 @@
 
 //queryParameters = {{&className}}.mergeQueryParams(parameters, queryParameters);
 
-return this.request('{{method}}', this.domain + path, parameters, body, headers, queryParameters, form);
+return this.request<{{&tsType}}>('{{method}}', this.domain + path, parameters, body, headers, queryParameters, form);
 }

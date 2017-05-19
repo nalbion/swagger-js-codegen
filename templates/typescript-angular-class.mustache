@@ -49,9 +49,9 @@ export class {{&className}} {
      * @param {object} queryParameters - querystring parameters
      * @param {object} form - form data object
      */
-    private request(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string,
+    private request<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string,
                     opts?: RequestOptions, body?: any, headers?: any,
-                    queryParameters?: any, form?: any): ng.IPromise<any> {
+                    queryParameters?: any, form?: any): ng.IPromise<T> {
 
         let deferred = this.$q.defer();
         let cached = opts.$cache && opts.$cache.get(url);
@@ -74,7 +74,7 @@ export class {{&className}} {
             options.transformRequest = {{&className}}.transformRequest;
         }
         this.$http(options)
-            .then((response: ng.IHttpPromiseCallbackArg<any>) => {
+            .then((response: ng.IHttpPromiseCallbackArg<T>) => {
                 if (response.status >= 400) {
                     deferred.reject(response);
                 } else {
