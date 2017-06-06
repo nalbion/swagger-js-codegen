@@ -75,7 +75,7 @@ export class {{&className}} {
         }
         this.$http(options)
             .then((response: ng.IHttpPromiseCallbackArg<T>) => {
-                if (response.status >= 400) {
+                if (response.status < 200 || response.status >= 400) {
                     deferred.reject(response);
                 } else {
                     deferred.resolve(response.data);
