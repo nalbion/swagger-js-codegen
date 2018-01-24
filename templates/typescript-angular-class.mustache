@@ -53,8 +53,8 @@ export class {{&className}} {
                     opts?: RequestOptions, body?: any, headers?: any,
                     queryParameters?: any, form?: any): ng.IPromise<T> {
 
-        let deferred = this.$q.defer();
-        let cached = opts.$cache && opts.$cache.get(url);
+        let deferred = this.$q.defer<T>();
+        let cached = opts.$cache && opts.$cache.get(url) as T;
         if (cached !== undefined && opts.$refresh !== true) {
             deferred.resolve(cached);
             return deferred.promise;
